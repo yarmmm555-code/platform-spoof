@@ -1,0 +1,8 @@
+{
+  "name": "Platform Spoof",
+  "description": "Appear as Desktop instead of Mobile",
+  "authors": [{ "name": "You" }],
+  "main": "index.js",
+  "hash": "1",
+  "vendetta": { "icon": "ic_monitor" }
+}
