@@ -31,21 +31,26 @@
   };
 
   const reconnect = () => {
-    try {
-      const socket = getSocket();
-      if (!socket) return toast("No socket");
-      if (typeof socket.resetSocketOnError === "function") {
-        socket.resetSocketOnError();
-        toast("Reconnecting (reset)...");
-      } else if (typeof socket.close === "function") {
-        socket.close(1000, "spoof");
-        toast("Reconnecting (close)...");
-      } else {
-        toast("No reconnect method, restart Discord");
-      }
-    } catch (e) {
-      toast("Reconnect error: " + (e && e.message ? e.message : e));
+    const socket = getSocket();
+    if (!socket) return toast("No socket");
+
+    const attempts = [
+      ["close", () => socket.close(4000, "spoof")],
+      ["resetSocketOnError", () => socket.resetSocketOnError()],
+      ["_ws.close", () => socket._ws && socket._ws.close(4000)],
+      ["ws.close", () => socket.ws && socket.ws.close(4000)],
+    ];
+
+    for (const [name, fn] of attempts) {
+      try {
+        if (name === "close" && typeof socket.close !== "function") continue;
+        if (name === "resetSocketOnError" && typeof socket.resetSocketOnError !== "function") continue;
+        fn();
+        toast("Reconnecting (" + name + ")...");
+        return;
+      } catch (e) {}
     }
+    toast("Reconnect failed, force close Discord and reopen");
   };
 
   exports.onLoad = () => {
