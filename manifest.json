@@ -3,6 +3,6 @@
   "description": "Appear as Desktop instead of Mobile",
   "authors": [{ "name": "You" }],
   "main": "index.js",
-  "hash": "1",
+  "hash": "2",
   "vendetta": { "icon": "ic_monitor" }
 }
