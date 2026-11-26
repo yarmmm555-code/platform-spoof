@@ -5,6 +5,24 @@
   let lastInfo = "-";
   let loadMsg = "not loaded";
 
+  const PRESETS = {
+    desktop: { label: "Desktop (Windows)", props: { os: "Windows", browser: "Discord Client", device: "", os_version: "10" } },
+    browser: { label: "Browser (Chrome)", props: { os: "Windows", browser: "Chrome", device: "", os_version: "10" } },
+    mac:     { label: "Desktop (Mac)", props: { os: "Mac OS X", browser: "Discord Client", device: "", os_version: "10.15.7" } },
+    off:     { label: "Off (no spoof)", props: null },
+  };
+
+  const mem = {};
+  const getStore = () => {
+    try { if (vendetta.plugin && vendetta.plugin.storage) return vendetta.plugin.storage; } catch (e) {}
+    return mem;
+  };
+  const getChoice = () => {
+    const c = getStore().choice;
+    return PRESETS[c] ? c : "desktop";
+  };
+  const setChoice = (c) => { getStore().choice = c; };
+
   const getSocket = () => {
     try {
       const store = vendetta.metro.findByStoreName("GatewayConnectionStore");
@@ -43,12 +61,9 @@
       unpatch = before("send", target, (args) => {
         try {
           if (args[0] === 2 && args[1] && args[1].properties) {
-            args[1].properties = Object.assign({}, args[1].properties, {
-              os: "Windows",
-              browser: "Discord Client",
-              device: "",
-              os_version: "10",
-            });
+            const preset = PRESETS[getChoice()];
+            if (!preset.props) return args;
+            args[1].properties = Object.assign({}, args[1].properties, preset.props);
             patchedCount++;
             lastInfo = "browser=" + args[1].properties.browser + " os=" + args[1].properties.os;
           }
@@ -69,9 +84,27 @@
     const Row = Forms.FormRow;
     const [, force] = React.useState(0);
     if (!Row) return React.createElement(ReactNative.Text, null, "UI not found");
+
+    const current = getChoice();
+
+    const options = Object.keys(PRESETS).map((key) =>
+      React.createElement(Row, {
+        key: key,
+        label: (key === current ? "✓ " : "") + PRESETS[key].label,
+        subLabel: key === current ? "Selected" : undefined,
+        onPress: () => {
+          setChoice(key);
+          toast("Selected: " + PRESETS[key].label + " (press Reconnect now)");
+          force((n) => n + 1);
+        },
+      })
+    );
+
     return React.createElement(
       ReactNative.ScrollView,
       null,
+      React.createElement(Row, { label: "Platform", subLabel: "Pick one, then press Reconnect now" }),
+      ...options,
       React.createElement(Row, { label: "Status", subLabel: loadMsg }),
       React.createElement(Row, { label: "Identify patched", subLabel: String(patchedCount) + " times" }),
       React.createElement(Row, { label: "Last sent", subLabel: lastInfo }),
